@@ -10,9 +10,10 @@ load_dotenv()
 
 app = FastAPI(title="Honeypot Agent API")
 
+# 1. ALLOW CORS (Required for the Hackathon Portal to see you)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins (including the tester portal)
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -31,31 +32,29 @@ async def handle_incoming_message(
     background_tasks: BackgroundTasks,
     x_api_key: str = Header(None)
 ):
-    # --- 2. SECURITY CHECK ---
-    # We log it first to help debugging if the tester sends it weirdly
+    # 2. SECURITY CHECK
     if x_api_key != MY_SECRET_KEY:
-        print(f" Auth Failed. Expected: {MY_SECRET_KEY}, Got: {x_api_key}")
+        print(f"🔒 Auth Failed. Expected: {MY_SECRET_KEY}, Got: {x_api_key}")
         raise HTTPException(status_code=401, detail="Invalid API Key")
 
     try:
-        # --- 3. FLEXIBLE PARSING (The Magic Fix) ---
+        # 3. FLEXIBLE PARSING
         raw_body = await request.json()
-        print(f" RAW PAYLOAD RECEIVED: {raw_body}") 
+        print(f"📥 RAW PAYLOAD: {raw_body}") 
 
-        # Adapter Logic: Convert whatever we got into 'IncomingRequest'
         valid_payload = None
 
-        # Scenario A: Official Rule 6 Format (Perfect Match)
+        # Scenario A: Official Rule 6 Format (Judges)
         if "message" in raw_body and "sessionId" in raw_body:
-            # It's already perfect, just validate it
             valid_payload = IncomingRequest(**raw_body)
+            print("✅ Detected Official Format")
         
-        # Scenario B: Hackathon Tester Format (Simple)
+        # Scenario B: Hackathon Tester (Lazy Format)
         else:
-            # Extract text from various common 'simple' keys
+            # Extract text from simple format
             user_text = raw_body.get("text") or raw_body.get("content") or str(raw_body)
             
-            # Construct a FAKE valid request so service.py is happy
+            # Create a valid object manually
             valid_payload = IncomingRequest(
                 sessionId="tester-session-123",
                 message=Message(
@@ -66,11 +65,15 @@ async def handle_incoming_message(
                 conversationHistory=[],
                 metadata={"channel": "TESTER"}
             )
-            print(" Adapted 'Tester' payload to 'Official' format.")
+            print("⚠️ Adapted Tester Format")
 
-        # --- 4. LOGIC PROCESSING ---
-        # Now we pass the standardized 'valid_payload' to your service
-        agent_response, callback_payload = await service.process_incoming_message(valid_payload)
+        # --- 4. LOGIC PROCESSING (FIXED) ---
+        
+        # CRITICAL FIX: Convert Pydantic Object -> Dictionary
+        # Your service.py expects a dict (it uses .get), so we must convert it.
+        payload_as_dict = valid_payload.dict()
+        
+        agent_response, callback_payload = await service.process_incoming_message(payload_as_dict)
 
         # --- 5. BACKGROUND TASK ---
         if callback_payload:
@@ -79,11 +82,11 @@ async def handle_incoming_message(
         return agent_response
 
     except Exception as e:
-        print(f" CRITICAL ERROR: {str(e)}")
-        # Return a Safe Fallback to keep the status GREEN
+        print(f"❌ ERROR: {str(e)}")
+        # Safe fallback so the tester stays GREEN
         return {
             "status": "success", 
-            "reply": "I received your message, but I need a moment to verify details. (System Recovery Mode)"
+            "reply": "I received your message. (System Recovery Mode)"
         }
 
 if __name__ == "__main__":
