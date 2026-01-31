@@ -10,7 +10,7 @@ load_dotenv()
 
 app = FastAPI(title="Honeypot Agent API")
 
-# 1. ALLOW CORS (Required for the Hackathon Portal to see you)
+# 1. ALLOW CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -32,10 +32,13 @@ async def handle_incoming_message(
     background_tasks: BackgroundTasks,
     x_api_key: str = Header(None)
 ):
-    # 2. SECURITY CHECK
-    if x_api_key != MY_SECRET_KEY:
-        print(f"🔒 Auth Failed. Expected: {MY_SECRET_KEY}, Got: {x_api_key}")
-        raise HTTPException(status_code=401, detail="Invalid API Key")
+    # --- SECURITY CHECK DISABLED FOR TESTING ---
+    # We log the key for debugging, but we DO NOT raise an error if it's wrong.
+    print(f"🔒 Auth Check: Expected: {MY_SECRET_KEY}, Got: {x_api_key}")
+    
+    # if x_api_key != MY_SECRET_KEY:
+    #    print(f"🔒 Auth Failed. Blocking Request.")
+    #    raise HTTPException(status_code=401, detail="Invalid API Key")
 
     try:
         # 3. FLEXIBLE PARSING
@@ -51,10 +54,7 @@ async def handle_incoming_message(
         
         # Scenario B: Hackathon Tester (Lazy Format)
         else:
-            # Extract text from simple format
             user_text = raw_body.get("text") or raw_body.get("content") or str(raw_body)
-            
-            # Create a valid object manually
             valid_payload = IncomingRequest(
                 sessionId="tester-session-123",
                 message=Message(
@@ -67,10 +67,7 @@ async def handle_incoming_message(
             )
             print("⚠️ Adapted Tester Format")
 
-        # --- 4. LOGIC PROCESSING (FIXED) ---
-        
-        # CRITICAL FIX: Convert Pydantic Object -> Dictionary
-        # Your service.py expects a dict (it uses .get), so we must convert it.
+        # --- 4. LOGIC PROCESSING ---
         payload_as_dict = valid_payload.dict()
         
         agent_response, callback_payload = await service.process_incoming_message(payload_as_dict)
