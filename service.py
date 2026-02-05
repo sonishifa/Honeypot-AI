@@ -60,9 +60,8 @@ async def process_incoming_message(payload: dict) -> tuple[dict, FinalCallbackPa
                     break
 
 # 1C. Regex-based intelligence escalation (bank/upi/phone/link)
-    if not is_scam:
-        regex_data = utils.extract_regex_data(current_text)
-        has_financial_data = any(len(v) > 0 for v in regex_data.values())
+    regex_data = utils.extract_regex_data(current_text)
+    has_financial_data = any(len(v) > 0 for v in regex_data.values())
     if has_financial_data:
         is_scam = True
         scam_category = "PatternDetected"
