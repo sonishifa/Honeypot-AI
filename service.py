@@ -44,8 +44,13 @@ async def process_incoming_message(payload: dict) -> tuple[dict, FinalCallbackPa
     
     # --- STEP 1: SCAM DETECTION ---
     is_scam, scam_category = utils.detect_scam_keywords(current_text)
-    if not is_scam and len(raw_history) > 0:
-        is_scam = True # Continue engagement if already started
+    if not is_scam:
+        for msg in raw_history:
+            if msg.get("sender") == "scammer":
+                was_scam, scam_category = utils.detect_scam_keywords(msg.get("text", ""))
+                if was_scam: 
+                    is_scam = True
+                    break
 
     # --- STEP 2: PASSIVE MODE (Safe Messages) ---
     if not is_scam:
@@ -84,16 +89,18 @@ async def process_incoming_message(payload: dict) -> tuple[dict, FinalCallbackPa
     has_intel = (
         len(final_intel.bankAccounts) > 0 or 
         len(final_intel.upiIds) > 0 or 
-        len(final_intel.phoneNumbers) > 0
+        len(final_intel.phoneNumbers) > 0 or
+        len(final_intel.phishingLinks) > 0
     )
 
     if has_intel or total_messages >= 15:
+        detailed_notes = ai_result.get("agent_notes", f"Scam detected in {scam_category} category. Engagement depth: {total_messages} turns.")
         callback_payload = FinalCallbackPayload(
             sessionId=session_id,
             scamDetected=True,
             totalMessagesExchanged=total_messages,
             extractedIntelligence=final_intel,
-            agentNotes=ai_result.get("agent_notes", "Suspected banking scam.")
+            agentNotes=detailed_notes
         )
 
     return portal_response, callback_payload

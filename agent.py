@@ -69,8 +69,8 @@ OUTPUT FORMAT (JSON):
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type='application/json',
-                temperature=0.6,
-                max_output_tokens=400
+                temperature=0.4,
+                max_output_tokens=250
             )
         )
         
