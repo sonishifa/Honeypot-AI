@@ -124,6 +124,6 @@ def send_callback_background(payload: FinalCallbackPayload):
     try:
         data = payload.dict()
         response = requests.post(CALLBACK_URL, json=data, timeout=5)
-        print(f"✅ Section 12 Result Sent: {response.status_code}")
+        print(f"✅  Callback Result Sent: {response.status_code}")
     except Exception as e:
         print(f"❌ Callback Failed: {e}")
