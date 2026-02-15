@@ -78,7 +78,8 @@ def extract_regex_data(text: str) -> Dict[str, List[str]]:
     }
 
     normalized_text = re.sub(r'[\s\-]', '', text)
-    results["bankAccounts"] = re.findall(PATTERNS["bank_account"], normalized_text)
+    # After extracting both, remove phone numbers from bankAccounts
+    results["bankAccounts"] = [acc for acc in results["bankAccounts"] if acc not in results["phoneNumbers"]]
 
     loose_phones = re.findall(PATTERNS["phone_loose"], text)
     for p in loose_phones:
