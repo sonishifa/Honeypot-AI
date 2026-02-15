@@ -1,4 +1,4 @@
-# Honeypot API
+# HoneyShield
 
 ## Description
 An AI‑powered agentic honeypot that detects scam messages, engages fraudsters with a realistic human persona (“Alex”), and extracts actionable intelligence (bank accounts, UPI IDs, phone numbers, phishing links, emails). The system uses a three‑layer detection pipeline (keywords → regex → NLP) and a dual‑mode output: background callback after an idle timeout, and a GET endpoint for manual retrieval.
