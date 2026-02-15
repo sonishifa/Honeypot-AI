@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Header, HTTPException, BackgroundTasks, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from schemas import IncomingRequest, Message  
-import service
+from src.schemas import IncomingRequest, Message  
+import src.service as service
 import os
 from dotenv import load_dotenv
 from datetime import datetime

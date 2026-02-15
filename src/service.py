@@ -1,9 +1,9 @@
-from schemas import (
+from src.schemas import (
     IncomingRequest, AgentResponse, EngagementMetrics, 
     IntelligenceData, FinalCallbackPayload, Message
 )
-import utils
-import agent
+import src.utils as utils
+import src.agent as agent
 import requests 
 from datetime import datetime, timezone
 
