@@ -13,11 +13,10 @@ async def send_callback_async(payload: dict):
         print(" No CALLBACK_URL set, skipping callback.")
         return
     try:
-        # Run the blocking POST in a thread
         await asyncio.to_thread(requests.post, CALLBACK_URL, json=payload, timeout=5)
-        print(f"✅ Callback sent to {CALLBACK_URL}")
+        print(f" Callback sent to {CALLBACK_URL}")
     except Exception as e:
-        print(f"❌ Callback failed: {e}")
+        print(f" Callback failed: {e}")
 
 async def delayed_callback(session_id: str, payload: dict, delay: int = 10):
     """Wait for delay seconds, then send callback if not already sent."""
@@ -28,8 +27,8 @@ async def delayed_callback(session_id: str, payload: dict, delay: int = 10):
             await send_callback_async(payload)
             session.callback_sent = True
     except asyncio.CancelledError:
-        # Task was cancelled because a new message arrived – do nothing
-        print(f"Callback cancelled for session {session_id}")
+        # Task cancelled because a new message arrived – do nothing
+        print(f" Callback cancelled for session {session_id}")
         raise
 
 async def process_incoming_message(payload: dict) -> tuple[dict, None]:
@@ -45,9 +44,9 @@ async def process_incoming_message(payload: dict) -> tuple[dict, None]:
     session.update_timestamp()
     session.turn_count += 1
 
+    # --- STEP 0: PROMPT INJECTION DETECTION ---
     if utils.detect_injection(current_text):
-        print(f" Injection attempt detected in session {session_id}")
-        # Return a generic safe reply – do NOT activate agent or run detection
+        print(f"⚠️ Injection attempt detected in session {session_id}")
         return {"status": "success", "reply": "I'm not sure I understand. Can you explain normally?"}, None
 
     # --- 3-TIER SCAM DETECTION ---
@@ -113,9 +112,20 @@ async def process_incoming_message(payload: dict) -> tuple[dict, None]:
     total_messages = len(raw_history) + 1
     has_intel = any(len(session.extracted_intel[k]) > 0 for k in
                     ["phoneNumbers", "bankAccounts", "upiIds", "phishingLinks", "emailAddresses"])
-    if (session.scam_detected and not session.callback_sent and
-        ((has_intel and session.turn_count >= 5) or session.turn_count >= 10)):
 
+    # Conditions to generate a final output (and schedule callback):
+    # - Scam detected, callback not sent yet, AND
+    #   (has_intel) OR (turn_count >= 10 even if no intel)
+    generate_final = False
+    if session.scam_detected and not session.callback_sent:
+        if has_intel:
+            # Always schedule for messages that yield intel (idle timeout will fire after last message)
+            generate_final = True
+        elif session.turn_count >= 10:
+            # No intel but max turns reached – still report scam detection
+            generate_final = True
+
+    if generate_final:
         # Build final output and store in session
         final_output = session.to_final_output(
             total_messages=total_messages,
@@ -133,7 +143,7 @@ async def process_incoming_message(payload: dict) -> tuple[dict, None]:
             task = asyncio.create_task(delayed_callback(session_id, final_output, 10))
             session.pending_callback_task = task
         else:
-            print(f" No CALLBACK_URL set for session {session_id}. Final output stored for GET.")
+            print(f"ℹ️ No CALLBACK_URL set for session {session_id}. Final output stored for GET.")
     else:
         # Not yet ready – do nothing
         pass
