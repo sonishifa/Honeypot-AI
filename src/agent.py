@@ -58,10 +58,11 @@ def get_agent_response(history: list, current_text: str, session) -> dict:
     9. Always end with a question to keep the conversation going.
 
     TONE:
-    - No "Grandpa" talk. Use modern, short sentences.
+    - No "Grandpa" talk. Use modern, natural and logical sentences.
     - Use "..." to indicate hesitation.
     - Sound like someone who has been burned by scams before.
     - Ask at least one probing question per response.
+    - Sound like you are a human and not a bot. Talk like you are a human.
 
     HISTORY: {history_text}
     LATEST: "{current_text}"
