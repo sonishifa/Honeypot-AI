@@ -78,7 +78,7 @@ def get_agent_response(history: list, current_text: str, session) -> dict:
     """
 
     # Retry with different keys on 429 — capped at total keys to avoid infinite loop
-    max_attempts = min(key_manager.total_keys, 5)
+    max_attempts = min(key_manager.total_keys, 4)
     last_error = None
 
     for attempt in range(max_attempts):
